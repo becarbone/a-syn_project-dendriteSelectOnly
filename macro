@@ -1,0 +1,101 @@
+waitForUser("Open images manually\nImages should be max projections\nfour channels, cyan, blue, green, then red");
+denDir=getDirectory("Choose folder to save raw data/dendrites in");
+ROIdir=getDirectory("Choose folder to save ROI outlines in");
+colArray = newArray("Cyan","Blue","Green","Red");
+for (i = nImages; i > 0; i--) {
+	selectImage(i);
+	run("Properties...", "channels=4 slices=1 frames=1 unit=um pixel_width=0.1705 pixel_height=0.1705 voxel_depth=1");
+	Dialog.create("Are there Usable dendrites?");
+		Dialog.addString("","yes or no",30);
+		Dialog.show();
+	collect = Dialog.getString();
+	roiManager("reset");	
+	if (collect == "yes") {
+		run("In [+]");
+		run("In [+]");
+		run("In [+]");
+		//modify the name
+		title=getTitle();
+		Dialog.create("Title");
+			Dialog.addMessage("Rename");
+			Dialog.addString("",title,50);
+			Dialog.show();
+		newTitle = Dialog.getString();
+		rename(newTitle);
+		title=getTitle();
+		selectWindow(title);
+		//select dendrite
+		setTool("polygon");
+		waitForUser ("Select dendrite then hit OK");
+		for(c=0;c<colArray.length;c++){
+			l = c+1;
+			selectWindow(title);
+			setSlice(l);
+			run("Copy");
+			run("Internal Clipboard");
+			rename(colArray[c]+"-1");
+		}
+		setTool("polyline");
+		waitForUser ("Measure dendrite length");
+		run("Clear Results");
+		roiManager("Add");
+		run("Measure");
+		length = getResult("Length",0);
+		print(title+ "-1	"+length);	
+		setTool("polygon");
+		waitForUser ("Select dendrite then hit OK");
+		for(c=0;c<colArray.length;c++){
+			l = c+1;
+			selectWindow(title);
+			setSlice(l);
+			run("Copy");
+			run("Internal Clipboard");
+			rename(colArray[c]+"-2");
+		}
+		setTool("polyline");
+		waitForUser ("Measure dendrite length");
+		run("Clear Results");
+		roiManager("Add");
+		run("Measure");
+		length = getResult("Length",0);
+		print(title+ "-2	"+length);	
+		roiManager("save",ROIdir+title+".zip");
+
+		run("Merge Channels...", "c1=Red-1 c2=Blue-1 c3=Green-1 create");
+		selectWindow("Composite");
+		for(c=0;c<nSlices;c++){
+			l = c+1;
+			setSlice(l);
+			run(colArray[c]);
+		}
+		run("Stack to RGB");
+		selectWindow("Composite");
+		close();
+		selectWindow("Composite (RGB)");
+		saveAs("Tiff",denDir+title+"-1");
+		close();
+		selectWindow("Cyan-1");
+		saveAs("Tiff",denDir+"Cyan"+title+"-1");
+		close();
+		run("Merge Channels...", "c1=Red-2 c2=Blue-2 c3=Green-2 create");
+		selectWindow("Composite");
+		for(c=0;c<nSlices;c++){
+			l = c+1;
+			setSlice(l);
+			run(colArray[c]);
+		}
+		run("Stack to RGB");
+		selectWindow("Composite");
+		close();
+		selectWindow("Composite (RGB)");
+		saveAs("Tiff",denDir+title+"-2");
+		close();
+		selectWindow("Cyan-2");
+		saveAs("Tiff",denDir+"Cyan"+title+"-2");
+		close();
+		selectWindow(title);
+		close();
+	} else {
+		close();
+		}
+}
